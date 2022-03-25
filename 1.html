@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+
+<body>
+  <script>
+    // 设计一个具有有效期的"数据缓存方案"
+    const queryData = () => {
+      return new Promise(resolve => {
+        let xhr = new XMLHttpRequest()
+        xhr.open('GET', './package.json')
+        xhr.onreadystatechange = () => {
+          if (xhr.readyState === 4 && xhr.status === 200) {
+            resolve(JSON.parse(xhr.responseText))
+          }
+        }
+        xhr.send(null)
+      })
+    }
+    const storage = (query, key, limitTime) => {
+      if (typeof query !== 'function') throw new TypeError("query is not a function")
+      if (typeof key !== 'string') throw new TypeError("query is not a string")
+      if (typeof limitTime !== 'number' || isNaN(limitTime)) limitTime = 3600
+      return new Promise(async resolve => {
+        // 缓存获取
+        let cache = localStorage.getItem(key)
+        if (cache) {
+          let { time, data } = JSON.parse(cache)
+          if ((+new Date() - time) < (limitTime * 1000)) {
+            // 本地缓存有效
+            resolve(data)
+            return
+          }
+        }
+        // 服务器获取
+        let data = await query()
+        localStorage.setItem(key, JSON.stringify({
+          time: +new Date(),
+          data
+        }))
+        resolve(data)
+      })
+    }
+    storage(queryData, 'catch', 10).then(value => {
+      console.log(value)
+    })
+  </script>
+</body>
+
+</html>
